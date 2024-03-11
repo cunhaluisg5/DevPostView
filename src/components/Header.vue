@@ -1,7 +1,9 @@
 <template>
   <header id="header">
-    <a>SujeitoPost</a>
-    <button>Dashboard</button>
+    <router-link to="/">SujeitoPost</router-link>
+    <router-link to="/dashboard">
+      <button>Dashboard</button>
+    </router-link>
   </header>
 </template>
 
