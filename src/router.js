@@ -13,14 +13,14 @@ const router = createRouter({
       path: '/',
       component: Home,
       meta:{
-        requiresAuth: false
+        requiresAuth: true
       }
     },
     {
       path: '/dashboard',
       component: Dashboard,
       meta:{
-        requiresAuth: false
+        requiresAuth: true
       }
     },
     {
@@ -28,7 +28,7 @@ const router = createRouter({
       component: Perfil,
       props: true,
       meta:{
-        requiresAuth: false
+        requiresAuth: true
       }
     },
     {
