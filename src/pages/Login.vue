@@ -3,7 +3,7 @@
       
       <div class="loginArea" v-if="login">
         <h1>Entrar</h1>
-        <form>
+        <form @submit.prevent="handleLogin">
           <input type="text" placeholder="email@email.com" v-model="email" />
           <input type="password" placeholder="Sua senha..." v-model="password" />
           <button type="submit">Acessar</button>
@@ -68,7 +68,25 @@ export default {
       this.$router.push('/');
 
 
+    },
+
+    async handleLogin(){
+      const { user } = await firebase.auth().signInWithEmailAndPassword(this.email, this.password)
+
+      //Buscar o nome do usuario logado
+      const userProfile = await firebase.firestore().collection('users')
+      .doc(user.uid).get();
+
+      const usuarioLogado = {
+        uid: user.uid,
+        nome: userProfile.data().nome
+      };
+
+      await localStorage.setItem('devpost', JSON.stringify(usuarioLogado) );
+      this.$router.push('/');
+
     }
+
   }
 
 }
