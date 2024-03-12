@@ -7,9 +7,10 @@
         <textarea
         placeholder="O que está fazendo hoje?"
         rows="15"
+        v-model="input"
         >
         </textarea>
-        <button>Compartilhar</button>
+        <button @click="craetePost">Compartilhar</button>
       </div>
 
       <div class="postarea">
@@ -42,9 +43,45 @@
 </template>
 
 <script>
+import firebase from '../services/firebaseConnection';
+
 
 export default {
   name: 'Home_',
+  data(){
+    return{
+      input: '',
+      user: {},
+    }
+  },
+  created(){
+    const user = localStorage.getItem('devpost');
+    this.user = JSON.parse(user);
+  },
+  methods:{
+    async craetePost(){
+      if(this.input === ''){
+        return;
+      }
+
+      await firebase.firestore().collection('posts')
+      .add({
+        created: new Date(),
+        content: this.input,
+        autor: this.user.nome,
+        userId: this.user.uid,
+        likes: 0,
+      })
+      .then(()=> {
+        this.input = '';
+        console.log('POST CRIADO COM SUCESSO!');
+      })
+      .catch((error)=>{
+        console.log('Error ao criar o post: ' + error);
+      })
+
+    }
+  }
 
 }
 </script>
