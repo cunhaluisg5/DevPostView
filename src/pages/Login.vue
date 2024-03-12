@@ -13,7 +13,7 @@
 
       <div class="loginArea" v-else>
         <h1>Cadastrar</h1>
-        <form>
+        <form @submit.prevent="handleRegister" >
           <input type="text" placeholder="Nome" v-model="nome" />
           <input type="text" placeholder="email@email.com" v-model="email" />
           <input type="password" placeholder="Sua senha..." v-model="password" />
@@ -26,6 +26,7 @@
 </template>
 
 <script>
+import firebase from '../services/firebaseConnection';
 
 export default {
   name: 'Login_',
@@ -43,6 +44,30 @@ export default {
       this.nome = '';
       this.email = '';
       this.password = '';
+    },
+    async handleRegister(){
+      const { user } = await firebase.auth().createUserWithEmailAndPassword(this.email, this.password)
+
+      await firebase.firestore().collection('users')
+      .doc(user.uid).set({
+        nome: this.nome
+      })
+      .then(async ()=> {
+        const usuarioLogado = {
+          uid: user.uid,
+          nome: this.nome
+        };
+
+        await localStorage.setItem('devpost', JSON.stringify(usuarioLogado) )
+
+      })
+      .catch(()=>{
+        console.log('ERROR AO CADASTRAR');
+      });
+
+      this.$router.push('/');
+
+
     }
   }
 
