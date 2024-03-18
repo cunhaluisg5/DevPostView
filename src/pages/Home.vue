@@ -1,45 +1,45 @@
 <template>
     <div id="home">
-      <div class="newpost">
+        
+        <div class="newpost">
           <h2>Bem vindo de volta!</h2>
           <span>Compartilhe seu dia</span>
-          <textarea 
-              placeholder="O que está fazendo hoje?" 
-              rows="15" 
-              v-model="input"
+          <textarea
+          placeholder="O que está fazendo hoje?"
+          rows="15"
+          v-model="input"
           >
           </textarea>
-          <button @click="createPost">Compartilhar</button>
-      </div>
+          <button @click="craetePost">Compartilhar</button>
+        </div>
   
-      <div class="postarea loading" v-if="loading">
+        <div class="postarea loading" v-if="loading">
           <h2>Buscando posts...</h2>
-      </div>
+        </div>
   
-      <div class="postarea" v-else>
+        <div class="postarea" v-else>
           <article class="post" v-for="post in posts" :key="post.id">
-              <!-- <h1>{{post.autor}}</h1> -->
-              <router-link :to="`/perfil/${post.userId}`"><h1>{{post.autor}}</h1></router-link>
-              <p>
-                  {{post.content}}
-              </p>
+            <h1>{{post.autor}}</h1>
+            <p>
+              {{post.content }}
+            </p>
   
-              <div class="action-post">
-                  <button @click="likePost(post.id, post.likes)">
-                      {{post.likes === 0 ? 'Curtir' : post.likes + ' Curtidas'}}
-                  </button>
-                  <button @click="togglePostModal(post)"> Veja post completo</button>
-              </div>
-          </article>  
-      </div>
+            <div class="action-post">
+              <button @click="likePost(post.id, post.likes)">
+                {{post.likes === 0 ? 'Curtir' : post.likes + ' Curtidas'}}
+              </button>
+              <button @click="togglePostModal(post)">Veja post completo</button>
+            </div>
+          </article>
+        </div>
   
+        <Modal
+          v-if="showPostModal"
+          :post="fullPost"
+          @close="togglePostModal()"
+        >
   
-      <Modal 
-          v-if="showPostModal" 
-          :post="fullPost" 
-          @close="togglePostModal()">
-      </Modal>
-    
+        </Modal>
   
     </div>
   </template>
@@ -49,138 +49,137 @@
   import Modal from '../components/Modal';
   
   export default {
-    name:'Home_',
+    name: 'Home_',
     components:{
-        Modal
+      Modal
     },
     data(){
-        return{
-            input: '',
-            user: {},
-            loading: true,
-            posts:[],
-  
-            showPostModal: false,
-            fullPost:{}
-        }
+      return{
+        input: '',
+        user: {},
+        loading: true,
+        posts: [],
+        showPostModal: false,
+        fullPost: {}
+      }
     },
     async created(){
-       const user = localStorage.getItem('sujeito');
-       this.user = JSON.parse(user);
-       
-      //monitorando toda mudança em toda coleçao post TEMPO REAL
-      await firebase.firestore().collection('posts')
-      .orderBy('created', 'desc') // Posts mais novos primeiro
-      .onSnapshot((doc) => {
-            this.posts = [];
-            doc.forEach((item) => {
-             this.posts.push({
-                id: item.id,
-                autor: item.data().autor,
-                content: item.data().content,
-                likes: item.data().likes,
-                created: item.data().created,
-                userId: item.data().userId
-              });
-             
-            });
-            this.loading = false;
-            console.log(this.posts);
-      });      
+      const user = localStorage.getItem('devpost');
+      this.user = JSON.parse(user);
   
-    
+      await firebase.firestore().collection('posts')
+      .orderBy('created', 'desc')
+      .onSnapshot((doc)=>{
+        this.posts = [];
+  
+        doc.forEach((item)=>{
+          this.posts.push({
+            id: item.id,
+            autor: item.data().autor,
+            content: item.data().content,
+            likes: item.data().likes,
+            created: item.data().created,
+            userId: item.data().userId
+          });
+        })
+  
+        this.loading = false;
+        console.log(this.posts);
+  
+  
+      })
+  
     },
     methods:{
-      async createPost(){
-          if(this.input === '') {
-              return;
-          }
+      async craetePost(){
+        if(this.input === ''){
+          return;
+        }
   
-          await firebase.firestore().collection('posts')
-          .add({
-           created: new Date(),
-           content: this.input,
-           autor: this.user.nome,
-           userId: this.user.uid,
-           likes: 0,
-          })
-          .then(()=>{
-              this.input = '';
-              console.log("Post criado com sucesso!!");
-            })
-            .catch((error)=> {
-              console.error("Error ao cadastrar: ", error);
-            });
+        await firebase.firestore().collection('posts')
+        .add({
+          created: new Date(),
+          content: this.input,
+          autor: this.user.nome,
+          userId: this.user.uid,
+          likes: 0,
+        })
+        .then(()=> {
+          this.input = '';
+          console.log('POST CRIADO COM SUCESSO!');
+        })
+        .catch((error)=>{
+          console.log('Error ao criar o post: ' + error);
+        })
+  
       },
+  
       async likePost(id, likes){
+        const userId = this.user.uid;
+        const docId = `${userId}_${id}`;
   
-          const userId = this.user.uid;
-          const docId = `${userId}_${id}`;  
-          
-          // Chegando se o post ja foi curtido
-          const doc = await firebase.firestore().collection('likes')
-          .doc(docId).get()
-          
-          if (doc.exists) { 
-          
-              await firebase.firestore().collection('posts')
-              .doc(id).update({
-              likes: likes - 1
-              })
-              
-              await firebase.firestore().collection('likes')
-              .doc(docId).delete();
-              return;
-           }
+        //Checando se o post já foi curtido
+        const doc = await firebase.firestore().collection('likes')
+        .doc(docId).get()
   
-          // Create like
-          await firebase.firestore().collection('likes')
-          .doc(docId).set({
-              postId: id,
-              userId: userId
-          })
-  
-          // Atualizar o numero de likes
+        if(doc.exists){
           await firebase.firestore().collection('posts')
           .doc(id).update({
-              likes: likes + 1
+            likes: likes - 1
           })
-      },
-      togglePostModal(post) {
-          this.showPostModal = !this.showPostModal;
   
-          // if opening modal set selectedPost, else clear
-          if (this.showPostModal) {
-              this.fullPost = post
-          } else {
-              this.fullPost = {}
-          }
+          await firebase.firestore().collection('likes')
+          .doc(docId).delete();
+          return;
+        }
+  
+  
+        await firebase.firestore().collection('likes')
+        .doc(docId).set({
+          postId: id,
+          userId: userId
+        });
+  
+        //Criar o like
+        await firebase.firestore().collection('posts')
+        .doc(id).update({
+          likes: likes + 1
+        })
+  
       },
-      viewPost(post){
-          this.fullPost = post
-          this.showPostModal = true
-      },
+  
+      togglePostModal(post){
+        this.showPostModal = !this.showPostModal;
+  
+        if(this.showPostModal){
+          this.fullPost = post;
+        }else{
+          this.fullPost = {};
+        }
+  
+      }
     },
     filters:{
-        postLength(val){
-          //Se o conteudo do post tiver mais que 200 caracteres colocar ...
-          if (val.length < 200) { 
-              return val 
-          }
-          return `${val.substring(0, 200)}...`
+      postLength(valor){
+        if(valor.length < 200){
+          return valor;
         }
+  
+        return `${valor.substring(0, 200)}...`
+      }
     }
+  
   }
   </script>
   
   <style scoped>
-      #home{
-          display: flex;
-          flex-direction: row;
-          margin: 25px;
-      }
+   #home{
+     display: flex;
+     flex-direction: row;
+     margin: 25px;
+   }
   
-  
-      @import './home.css';
+   @import './home.css';
   
   </style>
+  
