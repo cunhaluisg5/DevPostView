@@ -4,9 +4,9 @@
       <h2>Minha Conta</h2>
       <span>Atualize seu perfil</span>
 
-      <form>
+      <form @submit.prevent="updateProfile">
         <label>Nome:</label>
-        <input type="text" v-model="nome" id="name" />
+        <input type="text" v-model="nome" :placeholder="user.nome"  id="name" />
 
         <button class="button" type="submit">Atualizar Perfil</button>
       </form>
@@ -23,8 +23,13 @@ export default {
   name: 'Dashboard_',
   data(){
     return{
-      nome: ''
+      nome: '',
+      user: {}
     }
+  },
+  created(){
+    const user = localStorage.getItem('devpost');
+    this.user = JSON.parse(user);
   },
   methods:{
     async logOut(){
@@ -39,6 +44,34 @@ export default {
       }else{
         return;
       }
+
+    },
+    async updateProfile(){
+      if(this.nome === ''){
+        return;
+      }
+
+      await firebase.firestore().collection('users')
+      .doc(this.user.uid).update({
+        nome: this.nome
+      })
+
+
+      //Atualizando todos os posts do usuario
+      const postDocs = await firebase.firestore().collection('posts')
+      .where('userId', '==', this.user.uid).get();
+
+      //percorrer todos os posts para mudar o nome
+      postDocs.forEach(async doc => {
+        await firebase.firestore().collection('posts').doc(doc.id).update({
+          autor: this.nome
+        })
+      })
+
+      //Atualizar nosso localStorage
+      localStorage.setItem('devpost', JSON.stringify( { uid: this.user.uid, nome: this.nome } ));
+
+      alert('Perfil Atualizado com sucesso!'); 
 
     }
   }
